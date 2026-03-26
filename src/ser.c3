@@ -27,6 +27,7 @@ interface Serializer {
   fn void? struct_end();
 }
 
+faultdef VALIDATOR_ERROR;
 
 interface Serializable {
   fn void? serialize(Serializer serializer);
@@ -50,6 +51,71 @@ fn void? Maybe{Serializable}.serialize(&self, Serializer ser) @dynamic {
 macro serialize(serializer, value) {
   value.serialize(serializer)!;
   return serializer.result();
+}
+
+/*
+  attributes:
+  - rename
+  - skip
+  - aliases
+  - default
+  - validator
+*/
+
+struct Dessert {
+  bool skip;
+  String rename;
+  String[] aliases;
+  String validator;
+}
+
+attrdef @Dessert(Dessert config) = @tag("dessert", config);
+
+macro impl_serialize(serializer, s) {
+  serializer.struct_start()!;
+  $foreach $member : $typeof(s).inner.membersof:
+    var $dessert = $member.has_tagof("dessert") ??? $member.tagof("dessert") : (Dessert) {};
+    $if $typeof($dessert) != Dessert:
+      $error("Dessert tag value must be of type Dessert");
+    $endif
+    $if !$dessert.skip:
+      $if $dessert.validator.len > 0: 
+        if (!s.$eval($dessert.validator)(s.$eval($member.nameof))) {
+          return VALIDATOR_ERROR~;
+        }
+      $endif
+      serializer.serialize_field_start(
+        $dessert.rename.len > 0 ??? $dessert.rename : $member.nameof
+      )!;
+      serialize_value(serializer, s.$eval($member.nameof), $member.nameof)!;
+      serializer.serialize_field_end()!;
+    $endif
+  $endforeach
+  serializer.struct_end()!;
+}
+
+macro serialize_value(serializer, value, $field_name) {
+  $switch:
+    $case $defined(value.value) &&& $defined(value == maybe::value{$typeof(value.value)}(value.value)):
+      var inner = value.get();
+      if (catch inner) {
+        serializer.serialize_null()!;
+      } else {
+        inner.serialize(serializer)!;
+      }
+
+    $case $typeof(value).kindof == ARRAY:
+    $case $typeof(value).kindof == SLICE:
+      serializer.serialize_slice_start()!;
+      foreach (el: value) {
+        el.serialize(serializer)!;
+      }
+      serializer.serialize_slice_end(value.len)!;
+    $case $defined(value.serialize):
+      value.serialize(serializer)!;
+    $default:
+      $error("Field not serializable " + $field_name);
+  $endswitch
 }
 
 // macro @serialize(#serializer, #value) {

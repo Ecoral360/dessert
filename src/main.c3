@@ -12,48 +12,19 @@ struct Animal (Serializable) {
 }
 
 struct Person (Serializable) {
-  int age;
+  int age @Dessert({ .validator = "validate_age" });
   String name;
   Animal[] pets;
-  // Maybe{Animal} pet;
+  Maybe{Person*} friend;
 }
 
+fn void? Animal.serialize(&self, Serializer serializer) @dynamic => 
+  ser::impl_serialize(serializer, self);
 
-fn void? Animal.serialize(&self, Serializer serializer) @dynamic {
-  serializer.struct_start()!;
+fn void? Person.serialize(&self, Serializer serializer) @dynamic => 
+  ser::impl_serialize(serializer, self); 
 
-  serializer.serialize_field_start("name")!;
-  self.name.serialize(serializer)!;
-  serializer.serialize_field_end()!;
-
-  serializer.serialize_field_start("specie")!;
-  self.specie.serialize(serializer)!;
-  serializer.serialize_field_end()!;
-
-  serializer.struct_end()!;
-}
-
-fn void? Person.serialize(&self, Serializer serializer) @dynamic {
-  serializer.struct_start()!;
-  serializer.serialize_field_start("age")!;
-  self.age.serialize(serializer)!;
-  serializer.serialize_field_end()!;
-
-  serializer.serialize_field_start("name")!;
-  self.name.serialize(serializer)!;
-  serializer.serialize_field_end()!;
-
-  serializer.serialize_field_start("pets")!;
-  serializer.serialize_slice_start()!;
-  foreach (pet : self.pets) {
-    pet.serialize(serializer)!;
-  }
-  serializer.serialize_slice_end(self.pets.len)!;
-  serializer.serialize_field_end()!;
-
-  serializer.struct_end()!;
-}
-
+fn bool Person.validate_age(&self, int age) => age > 0;
 
 fn int main(String[] args)
 {
@@ -65,13 +36,14 @@ fn int main(String[] args)
   // connor.pet = sharpie;
 
   Person amenda = { .age = 21, .name = "Amenda" };
+  connor.friend = maybe::value(&amenda);
 
   JsonSerializer ser = json::new_json_serializer();
-  JsonValue? connor_json = ser::serialize(&ser, &connor);
-  if (catch connor_json) {
-	  io::printn("error");
-    return 0;
-  }
+  JsonValue connor_json = ser::serialize(&ser, &connor)!!;
+  // if (catch connor_json) {
+	 //  io::printn("error");
+  //   return 0;
+  // }
 
 	io::printn("Success");
   connor_json.print()!!;

@@ -78,8 +78,6 @@ faultdef INVALID_JSON_TYPE;
 
 struct JsonSerializer (Serializer) {
   List{JsonValue} output;
-  Maybe{String} key;
-  Maybe{JsonValue} obj;
 }
 
 fn JsonSerializer new_json_serializer() {
@@ -116,8 +114,7 @@ fn void? JsonSerializer.struct_start(&self) @dynamic {
 
 fn void? JsonSerializer.struct_end(&self) @dynamic {}
 
-fn void? JsonSerializer.serialize_slice_start(&self) @dynamic {
-}
+fn void? JsonSerializer.serialize_slice_start(&self) @dynamic {}
 fn void? JsonSerializer.serialize_slice_end(&self, ulong len) @dynamic {
   List{JsonValue} l;
   l.init(mem);
