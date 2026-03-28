@@ -1,4 +1,4 @@
-module dessert;
+module example;
 import std::io;
 import dessert::ser;
 import dessert::des;
