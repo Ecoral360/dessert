@@ -2,6 +2,7 @@ module json;
 import std::collections::map;
 import std::collections::list;
 import std::io;
+import dessert::des;
 
 enum JsonValueKind {
   INT,
@@ -13,7 +14,7 @@ enum JsonValueKind {
   NULL,
 }
 
-struct JsonValue {
+struct JsonValue (Printable) {
   union value {
     int i;
     float f;
@@ -66,8 +67,56 @@ fn void? JsonValue.print(self) {
   }
 }
 
-module dessert::json;
+fn String? JsonValue.to_string(self) {
+  switch(self.kind) {
+    case NULL:
+      return "null";
+    case INT:
+      return string::format(mem, "%s", self.value.i);
+    case FLOAT:
+      return string::format(mem, "%s", self.value.f);
+    case BOOL:
+      return string::format(mem, "%s", self.value.b);
+    case STRING:
+      return string::format(mem, "\"%s\"", self.value.s);
+    case ARRAY:
+      DString s;
+      s.init(mem);
+      s.append("[");
+      ulong l_len = self.value.l.len();
+      foreach (i, item : self.value.l) {
+        s.append(item.to_string()!);
+        if (i < l_len - 1) {
+          s.append(", ");
+        }
+      }
+      s.append("]");
+      return s.str_view();
+    case DICT:
+      DString s;
+      s.init(mem);
+      s.append("{");
+      ulong d_len = self.value.d.len();
+      
+      foreach (i, entry : self.value.d.iter()) {
+        s.append(string::format(mem, "\"%s\": ", entry.key));
+        s.append(entry.value.to_string()!);
+        if (i < d_len - 1) {
+          s.append(", ");
+        }
+      };
+      s.append("}");
+      return s.str_view();
+
+    default:
+      return NOT_FOUND~;
+  }
+}
+
+
+module dessert::json::ser;
 import dessert::ser;
+import dessert::des;
 import json;
 import std::collections::maybe;
 import std::collections::list;
@@ -124,31 +173,6 @@ fn void? JsonSerializer.serialize_slice_end(&self, ulong len) @dynamic {
   self.output.push({ .kind = JsonValueKind.ARRAY, .value = { .l = l } });
 }
 
-// fn void? JsonSerializer.serialize_slice(&self, Serializable[] items) @dynamic {
-//   List{JsonValue} l;
-//   l.init(mem);
-//   foreach (item : items) {
-//     JsonSerializer ser;
-//     JsonValue value = ser::serialize(&ser, item)!;
-//     value.print()!;
-//
-//     l.push(value);
-//   }
-//
-//   self.output = maybe::value({ .kind = JsonValueKind.ARRAY, .value = { .l = l } });
-// }
-
-// fn void? JsonSerializer.serialize_field(&self, String name, Serializable v) @dynamic {
-//   JsonValue output = self.output.get()!;
-//   if (output.kind != JsonValueKind.DICT) return INVALID_JSON_TYPE~;
-//
-//   JsonSerializer ser;
-//   JsonValue value = ser::serialize(&ser, v)!;
-//
-//   output.value.d.set(name, value);
-//   self.output.set(output);
-// }
-
 fn void? JsonSerializer.serialize_field_start(&self, String name) @dynamic {
   self.output.push({.kind = STRING, .value = {.s = name}});
 }
@@ -166,66 +190,219 @@ fn void? JsonSerializer.serialize_field_end(&self) @dynamic {
 
 fn JsonValue? JsonSerializer.result(&self) => self.output.pop();
 
-// macro void? JsonSerializer.serialize_struct_start(JsonSerializer* self) {
-//   HashMap{String, JsonValue} d;
-//   self.output = maybe::value({ .kind = JsonValueKind.DICT, .value = { .d = d.init(mem) } });
-// }
-// macro JsonValue? JsonSerializer.serialize_struct_end(JsonSerializer* self) {
-//   return self.output.get();
-// }
-//
-// macro void? JsonSerializer.@serialize_field(JsonSerializer* self, String k, #v) {
-//   JsonValue output = self.output.get()!;
-//   if (output.kind != JsonValueKind.DICT) return INVALID_JSON_TYPE~;
-//
-//   JsonValue key = self.serialize_string(k)!;
-//   if (key.kind != JsonValueKind.STRING) return INVALID_JSON_TYPE~;
-//
-//   JsonValue value = ser::@serialize(new_json_serializer(), #v)!;
-//
-//   output.value.d.set(key.value.s, value);
-// }
-//
-//
-// macro void? JsonSerializer.serialize_slice_start(JsonSerializer* self) {
-//   List{JsonValue} l;
-//   self.output = maybe::value({ .kind = JsonValueKind.ARRAY, .value = { .l = l.init(mem) } });
-// }
-// macro JsonValue? JsonSerializer.serialize_slice_end(JsonSerializer* self) {
-//   return self.output.get();
-// }
-// macro void? JsonSerializer.@serialize_slice_item(JsonSerializer* self, item) {
-//   JsonValue output = self.output.get()!;
-//   if (output.kind != JsonValueKind.ARRAY) return INVALID_JSON_TYPE~;
-//
-//   JsonValue value = ser::@serialize(new_json_serializer(), item)!;
-//
-//   output.value.l.push(value);
-// }
-// macro JsonValue? JsonSerializer.@serialize_slice(JsonSerializer* self, items) {
-//   List{JsonValue} l;
-//   l.init(mem);
-//   for (int i = 0; i < items.len; i++) {
-//     var s = new_json_serializer();
-//     JsonValue value = ser::@serialize(s, items[i])!;
-//
-//     if (items[i].name == "Sharpie") {
-//       l.push(value);
-//     }
-//   }
-//
-//   return { .kind = JsonValueKind.ARRAY, .value = { .l = &l } };
-// }
-//
-// fn JsonValue? serialize_slice(JsonSerializer* self, Item[] items) <Item> {
-//   List{JsonValue} l;
-//   l.init(mem);
-//   foreach (item : items) {
-//     JsonValue value = ser::@serialize(new_json_serializer(), item)!;
-//     value.print()!;
-//
-//     l.push(value);
-//   }
-//
-//   return { .kind = JsonValueKind.ARRAY, .value = { .l = &l } };
-// }
+
+module dessert::json::des;
+import dessert::des;
+import json;
+import std::core::ascii;
+import std::encoding::json;
+import std::io;
+
+faultdef 
+  INVALID_OBJECT, 
+  INVALID_FIELD, 
+  INVALID_ARRAY, 
+  INVALID_STRING,
+  INVALID_ESCAPE,
+  INVALID_NUMBER,
+  INVALID_BOOLEAN,
+  INVALID_NULL;
+
+struct JsonDeserializer (Deserializer) {
+  // JsonValue input;
+  StringIterator input;
+}
+
+fn void? JsonDeserializer.skip_whitespace(&self) {
+  while (self.input.has_next() && ascii::is_blank((char) self.input.peek()!)) {
+    (void)self.input.next()!;
+  }
+}
+
+fn JsonDeserializer? new_json_deserializer(JsonValue input) {
+  return { .input = { .utf8 = input.to_string()! } };
+}
+
+fn void? JsonDeserializer.struct_start(&self) @dynamic {
+  self.skip_whitespace()!;
+  if (self.input.next()! != '{') {
+    return INVALID_OBJECT~;
+  }
+}
+
+fn bool? JsonDeserializer.has_next_field(&self) @dynamic {
+  self.skip_whitespace()!;
+  Char32 next = self.input.peek()!;
+  if (next != '}') {
+    if (next == ',') self.input.next()!;
+    return true;
+  }
+  return false;
+}
+
+fn String? JsonDeserializer.next_field_name(&self) @dynamic {
+  String field_name = self.next_string()!;
+  self.skip_whitespace()!;
+  if (self.input.next()! != ':') {
+    return INVALID_FIELD~;
+  }
+
+  return field_name;
+}
+
+fn void? JsonDeserializer.struct_end(&self) @dynamic {
+  self.skip_whitespace()!;
+  if (self.input.next()! != '}') {
+    return INVALID_OBJECT~;
+  }
+}
+
+fn void? JsonDeserializer.slice_start(&self) @dynamic {
+  self.skip_whitespace()!;
+  if (self.input.next()! != '[') {
+    return INVALID_ARRAY~;
+  }
+}
+fn bool? JsonDeserializer.has_next_slice_item(&self) @dynamic {
+  self.skip_whitespace()!;
+  Char32 next =self.input.peek()!;
+  if (next != ']') {
+    if (next == ',') self.input.next()!;
+    return true;
+  }
+  return false;
+}
+fn void? JsonDeserializer.slice_end(&self) @dynamic {
+  self.skip_whitespace()!;
+  if (self.input.next()! != ']') {
+    return INVALID_ARRAY~;
+  }
+}
+
+fn String? JsonDeserializer.next_string(&self) @dynamic {
+  self.skip_whitespace()!;
+  if (self.input.next()! != '"') {
+    return INVALID_STRING~;
+  }
+  DString val;
+  val.init(mem);
+  while (Char32 c = self.input.next()!, c != '"') {
+    if (c == '\\') {
+      Char32 escape = self.input.next()!;
+      switch (escape) {
+        case 'n':
+          val.append('\n');
+        case 'r':
+          val.append('\r');
+        case 't':
+          val.append('\t');
+        case '"':
+          val.append('\"');
+        case '\'':
+          val.append('\'');
+        case '\\':
+          val.append('\\');
+        default:
+          return INVALID_ESCAPE~;
+      }
+    } else {
+      val.append(c);
+    }
+  }
+
+  // io::printfn("%c", self.input.peek()!);
+  // io::printfn("%s", val);
+
+  return val.str_view();
+}
+
+<* 
+  Source (inspired by): https://github.com/c3lang/c3c/blob/d8636af7fa0edda737ac4c033f4fb3b7660ebede/lib/std/encoding/json.c3#L391
+*>
+fn double? JsonDeserializer.next_double(&self) @dynamic {
+  self.skip_whitespace()!;
+  Char32 c = self.input.peek()!;
+  @stack_mem(256; Allocator mem) {
+    DString t = dstring::new_with_capacity(mem, 32);
+    bool negate = c == '-';
+    if (negate) {
+      self.input.next()!;
+      t.append(c);
+      c = self.input.peek()!;
+    }
+    bool leading_zero = c == '0';
+    while (ascii::is_digit((char) c)) {
+      self.input.next()!;
+      t.append(c);
+      c = self.input.peek()!;
+      if (leading_zero) {
+        if (ascii::is_digit((char) c)) return INVALID_NUMBER~;
+        leading_zero = false;
+      }
+    }
+    if (c == '.') {
+      self.input.next()!;
+      t.append(c);
+      while (c = self.input.peek()!, ascii::is_digit((char) c)) {
+        self.input.next()!;
+        t.append(c);
+      }
+    }
+    if ((c | 32) == 'e') {
+      self.input.next()!;
+      t.append(c);
+      c = self.input.next()!;
+      switch (c) {
+        case '-':
+        case '+':
+          self.input.next()!;
+          t.append(c);
+          c = self.input.peek()!;
+      }
+      if (!ascii::is_digit((char) c)) return INVALID_NUMBER~;
+      while (ascii::is_digit((char) c)) {
+      self.input.next()!;
+        t.append(c);
+        c = self.input.peek()!;
+      }
+    }
+    double? d = t.str_view().to_double() ?? INVALID_NUMBER~;
+    return d;
+  };
+}
+
+fn int? JsonDeserializer.next_int(&self) @dynamic {
+  return (int) self.next_double()!;
+}
+fn bool? JsonDeserializer.next_bool(&self) @dynamic {
+  self.skip_whitespace()!;
+  Char32 next = self.input.next()!;
+  switch (next) {
+    case 't':
+      $foreach $v : "rue": // skips 'rue'
+        self.input.next()!;
+      $endforeach
+      return true;
+    case 'f':
+      $foreach $v : "alse": // skips 'alse'
+        self.input.next()!;
+      $endforeach
+      return false;
+    default:
+      return INVALID_BOOLEAN~;
+  }
+}
+
+fn bool? JsonDeserializer.next_null(&self) @dynamic {
+  self.skip_whitespace()!;
+  Char32 next = self.input.peek()!;
+  switch (next) {
+    case 'n':
+      $foreach $v : "null":
+        self.input.next()!;
+      $endforeach
+      return true;
+    default:
+      return false;
+  }
+}

@@ -62,15 +62,6 @@ macro serialize(serializer, value) {
   - validator
 */
 
-struct Dessert {
-  bool skip;
-  String rename;
-  String[] aliases;
-  String validator;
-}
-
-attrdef @Dessert(Dessert config) = @tag("dessert", config);
-
 macro impl_serialize(serializer, s) {
   serializer.struct_start()!;
   $foreach $member : $typeof(s).inner.membersof:
