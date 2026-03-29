@@ -24,6 +24,7 @@ interface Deserializer {
 faultdef VALIDATOR_ERROR;
 faultdef DUPLICATED_KEY;
 
+// Should be treated as a protocol, don't derive it directly
 interface Deserializable {
   fn void? deserialize(Deserializer deserializer);
 }

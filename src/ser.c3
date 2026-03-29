@@ -29,6 +29,7 @@ interface Serializer {
 
 faultdef VALIDATOR_ERROR;
 
+// Should be treated as a protocol, don't derive it directly
 interface Serializable {
   fn void? serialize(Serializer serializer);
 }

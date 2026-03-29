@@ -191,13 +191,6 @@ fn void? JsonSerializer.serialize_field_end(&self) @dynamic {
 fn JsonValue? JsonSerializer.result(&self) => self.output.pop();
 
 
-// module dessert::json::des;
-// import dessert::des;
-// import json;
-// import std::core::ascii;
-// import std::encoding::json;
-// import std::io;
-
 faultdef 
   INVALID_OBJECT, 
   INVALID_FIELD, 
