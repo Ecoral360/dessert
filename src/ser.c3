@@ -89,7 +89,9 @@ macro impl_serialize(s, serializer) {
 }
 
 macro @is_serializable(#value) {
-  return $defined(#value.serialize) ||| ($defined(#value.len) &&& $defined(#value[0])) ||| ($defined(#value.value) &&& $defined(#value == maybe::value{$typeof(#value.value)}(#value.value)));
+  return $defined(#value.serialize) ||| ($defined(#value.len) &&& $defined(#value[0])) ||| 
+    ($defined(#value.get) &&& $defined(#value.get()) &&& 
+     ($defined(#value.get()!) ||| $defined(#value == maybe::value{$typeof(#value.value)}(#value.value))));
 }
 
 macro serialize_value(serializer, value) {
@@ -97,7 +99,8 @@ macro serialize_value(serializer, value) {
     $case $defined(value.serialize) &&& $defined(value.serialize(serializer)):
       value.serialize(serializer)!;
 
-    $case $defined(value.value) &&& $defined(value == maybe::value{$typeof(value.value)}(value.value)):
+    $case ($defined(value.get) &&& $defined(value.get()) &&& 
+           ($defined(value.get()!) ||| $defined(value == maybe::value{$typeof(value.value)}(value.value)))):
       var inner = value.get();
       if (catch inner) {
         serializer.serialize_null()!;
@@ -119,7 +122,7 @@ macro serialize_value(serializer, value) {
       }
       serializer.serialize_slice_end(value.len)!;
     $default:
-      $error("Field not serializable");
+      $error("Value not serializable");
   $endswitch
 }
 
