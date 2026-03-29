@@ -219,8 +219,8 @@ fn void? JsonDeserializer.skip_whitespace(&self) {
   }
 }
 
-fn JsonDeserializer? deserializer(JsonValue input) {
-  return { .input = { .utf8 = input.to_string()! } };
+fn JsonDeserializer? deserializer(String input) {
+  return { .input = { .utf8 = input } };
 }
 
 fn void? JsonDeserializer.struct_start(&self) @dynamic {

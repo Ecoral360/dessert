@@ -52,7 +52,7 @@ fn void? Maybe{Serializable}.serialize(&self, Serializer ser) @dynamic {
 }
 
 macro serialize(serializer, value) {
-  value.serialize(serializer)!;
+  serialize_value(serializer, value)!;
   return serializer.result();
 }
 
@@ -65,7 +65,7 @@ macro serialize(serializer, value) {
   - validator
 */
 
-macro impl_serialize(serializer, s) {
+macro impl_serialize(s, serializer) {
   serializer.struct_start()!;
   $foreach $member : $typeof(s).inner.membersof:
     var $dessert = $member.has_tagof("dessert") ??? $member.tagof("dessert") : (Dessert) {};
@@ -81,14 +81,18 @@ macro impl_serialize(serializer, s) {
       serializer.serialize_field_start(
         $dessert.rename.len > 0 ??? $dessert.rename : $member.nameof
       )!;
-      serialize_value(serializer, s.$eval($member.nameof), $member.nameof)!;
+      serialize_value(serializer, s.$eval($member.nameof))!;
       serializer.serialize_field_end()!;
     $endif
   $endforeach
   serializer.struct_end()!;
 }
 
-macro serialize_value(serializer, value, $field_name) {
+macro @is_serializable(#value) {
+  return $defined(#value.serialize) ||| ($defined(#value.len) &&& $defined(#value[0])) ||| ($defined(#value.value) &&& $defined(#value == maybe::value{$typeof(#value.value)}(#value.value)));
+}
+
+macro serialize_value(serializer, value) {
   $switch:
     $case $defined(value.serialize) &&& $defined(value.serialize(serializer)):
       value.serialize(serializer)!;
@@ -100,6 +104,13 @@ macro serialize_value(serializer, value, $field_name) {
       } else {
         inner.serialize(serializer)!;
       }
+
+    $case $defined(value.len) &&& $defined(value[0]) &&& $defined(value.len()):
+      serializer.serialize_slice_start()!;
+      foreach (el: value) {
+        el.serialize(serializer)!;
+      }
+      serializer.serialize_slice_end(value.len())!;
 
     $case $defined(value.len) &&& $defined(value[0]):
       serializer.serialize_slice_start()!;

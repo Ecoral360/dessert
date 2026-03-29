@@ -65,12 +65,12 @@ macro deserialize(deserializer) <Output> {
       return elements.to_array(mem);
 
     $default:
-      $error("The value cannot be deserialize");
+      $error "The value cannot be deserialize: " +++ Output.nameof;
 
   $endswitch
 }
 
-macro impl_deserialize(deserializer, value) {
+macro impl_deserialize(value, deserializer) {
   List{String} names;
   names.init(mem);
   defer names.free();
