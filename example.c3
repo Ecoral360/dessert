@@ -7,18 +7,18 @@ import json;
 import std::collections::list;
 import std::collections::maybe;
 
-struct Animal (Serializable, Deserializable) {
+struct Animal {
   String name;
   String specie;
 }
 
-fn void? Animal.serialize(&self, Serializer serializer) @dynamic => 
+fn void? Animal.serialize(&self, Serializer serializer) => 
   ser::impl_serialize(serializer, self);
 
-fn void? Animal.deserialize(&self, Deserializer deserializer) @dynamic => 
+fn void? Animal.deserialize(&self, Deserializer deserializer) => 
   des::impl_deserialize(deserializer, self);
 
-struct Person (Serializable, Deserializable) {
+struct Person {
   int age @Dessert({ .validator = "validate_age" });
   String name;
   Animal[] pets;
@@ -26,17 +26,13 @@ struct Person (Serializable, Deserializable) {
   bool is_cool @Dessert({ .skip = true });
 }
 
-fn void? Person.serialize(&self, Serializer serializer) @dynamic => 
+fn void? Person.serialize(&self, Serializer serializer) => 
   ser::impl_serialize(serializer, self); 
 
-fn void? Person.deserialize(&self, Deserializer deserializer) @dynamic =>
+fn void? Person.deserialize(&self, Deserializer deserializer) =>
   des::impl_deserialize(deserializer, self);
 
 fn bool Person.validate_age(&self, int age) => age > 0;
-
-
-
-
 
 fn void Person.print(&self) {
   io::print("(Person) { ");
@@ -89,7 +85,7 @@ fn int main(String[] args) {
   JsonSerializer s = json::serializer();
   JsonValue? connor_json = ser::serialize(&s, &connor);
 
-  Person? p = des::deserialize{Person}(&&json::deserializer(connor_json));
+  Person? p = des::deserialize{Person}(&&json::deserializer(connor_json.to_string()!));
 
   // p.print();
   // io::printn();
