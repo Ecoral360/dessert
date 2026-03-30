@@ -39,6 +39,13 @@ fn void? bool.deserialize(&self, Deserializer ser) @dynamic {
   *self = ser.next_bool()!;
 }
 
+macro @is_deserializable($Output) {
+  $Output $value;
+  return $defined($value.deserialize) ||| ($defined($value.len) &&& $defined($value[0])) ||| 
+    ($defined($value.get) &&& $defined($value.get()) &&& 
+     ($defined($value.get()!) ||| $defined($value == maybe::value{$typeof($value.value)}($value.value))));
+}
+
 macro deserialize(deserializer) <Output> {
   Output value;
   $switch:
@@ -49,7 +56,8 @@ macro deserialize(deserializer) <Output> {
       value.deserialize(deserializer)!;
       return value;
 
-    $case $defined(value.value) &&& $defined(value == maybe::value{$typeof(value.value)}(value.value)):
+    $case ($defined(value.get) &&& $defined(value.get()) &&& 
+           ($defined(value.get()!) ||| $defined(value == maybe::value{$typeof(value.value)}(value.value)))):
       if (deserializer.next_null()!) {
         return (Maybe{$typeof(value.value)}){};
       } else {

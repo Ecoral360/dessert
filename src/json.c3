@@ -327,7 +327,11 @@ fn double? JsonDeserializer.next_double(&self) @dynamic {
     while (ascii::is_digit((char) c)) {
       self.input.next()!;
       t.append(c);
-      c = self.input.peek()!;
+      Char32? next = self.input.peek();
+      if (catch next) {
+        return t.str_view().to_double() ?? INVALID_NUMBER~;
+      }
+      c = next;
       if (leading_zero) {
         if (ascii::is_digit((char) c)) return INVALID_NUMBER~;
         leading_zero = false;
@@ -336,9 +340,19 @@ fn double? JsonDeserializer.next_double(&self) @dynamic {
     if (c == '.') {
       self.input.next()!;
       t.append(c);
-      while (c = self.input.peek()!, ascii::is_digit((char) c)) {
+      Char32? next = self.input.peek();
+      if (catch next) {
+        return t.str_view().to_double() ?? INVALID_NUMBER~;
+      }
+      c = next;
+      while (ascii::is_digit((char) c)) {
         self.input.next()!;
         t.append(c);
+        Char32? next = self.input.peek();
+        if (catch next) {
+          return t.str_view().to_double() ?? INVALID_NUMBER~;
+        }
+        c = next;
       }
     }
     if ((c | 32) == 'e') {
@@ -356,7 +370,11 @@ fn double? JsonDeserializer.next_double(&self) @dynamic {
       while (ascii::is_digit((char) c)) {
       self.input.next()!;
         t.append(c);
-        c = self.input.peek()!;
+        Char32? next = self.input.peek();
+        if (catch next) {
+          return t.str_view().to_double() ?? INVALID_NUMBER~;
+        }
+        c = next;
       }
     }
     double? d = t.str_view().to_double() ?? INVALID_NUMBER~;
