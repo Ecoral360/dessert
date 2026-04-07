@@ -19,7 +19,7 @@ interface Serializer {
 
   fn void? serialize_uint(uint i) @optional;
   fn void? serialize_ushort(ushort s) @optional;
-  fn void? serialize_ulong(ulong l) @optional;
+  fn void? serialize_ulong(ulong l);
   fn void? serialize_uint128(uint128 i) @optional;
 
   fn void? serialize_string(String s);

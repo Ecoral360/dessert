@@ -14,16 +14,27 @@ interface Deserializer {
   fn bool? has_next_slice_item();
   fn void? slice_end();
 
-  fn String? next_string();
-  fn int? next_int();
-
-  // fn int? next_short() @optional;
-  // fn long? next_long() @optional;
-  // fn ulong? next_ulong();
-
-  fn double? next_double();
   fn bool? next_bool();
   fn bool? next_null();
+
+  fn char? next_char();
+  fn ichar? next_ichar() @optional;
+
+  fn short? next_short() @optional;
+  fn int? next_int() @optional;
+  fn long? next_long();
+  fn int128? next_int128() @optional;
+
+  fn uint? next_uint() @optional;
+  fn ushort? next_ushort() @optional;
+  fn ulong? next_ulong();
+  fn uint128? next_uint128() @optional;
+
+  fn String? next_string();
+  fn ZString? next_zstring() @optional;
+
+  fn float? next_float() @optional;
+  fn double? next_double();
 }
 
 faultdef VALIDATOR_ERROR;
@@ -32,19 +43,6 @@ faultdef DUPLICATED_KEY, INVALID_ENUM_VALUE;
 // Should be treated as a protocol, don't derive it directly
 interface Deserializable {
   fn void? deserialize(Deserializer deserializer);
-}
-
-fn void? String.deserialize(&self, Deserializer ser) @dynamic {
-  *self = ser.next_string()!;
-}
-fn void? int.deserialize(&self, Deserializer ser) @dynamic {
-  *self = ser.next_int()!;
-}
-fn void? ulong.deserialize(&self, Deserializer ser) @dynamic {
-  *self = (ulong) ser.next_int()!;
-}
-fn void? bool.deserialize(&self, Deserializer ser) @dynamic {
-  *self = ser.next_bool()!;
 }
 
 macro @is_deserializable($Output) {

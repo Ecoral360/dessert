@@ -454,9 +454,17 @@ fn double? JsonDeserializer.next_double(&self) @dynamic {
   };
 }
 
-fn int? JsonDeserializer.next_int(&self) @dynamic {
-  return (int) self.next_double()!;
+fn char? JsonDeserializer.next_char(&self) @dynamic {
+  return (char) self.next_char()!;
 }
+
+fn long? JsonDeserializer.next_long(&self) @dynamic {
+  return (long) self.next_double()!;
+}
+fn ulong? JsonDeserializer.next_ulong(&self) @dynamic {
+  return (ulong) self.next_double()!;
+}
+
 fn bool? JsonDeserializer.next_bool(&self) @dynamic {
   self.skip_whitespace()!;
   Char32 next = self.input.next()!;
