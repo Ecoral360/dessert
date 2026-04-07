@@ -25,11 +25,11 @@ interface Serializer {
   fn void? serialize_string(String s);
   fn void? serialize_zstring(ZString s) @optional;
 
-  fn void? serialize_float16(float16 f) @optional;
+  // fn void? serialize_float16(float16 f) @optional;
   fn void? serialize_float(float f) @optional;
   fn void? serialize_double(double d);
 
-  fn void? serialize_float128(float128 f) @optional;
+  // fn void? serialize_float128(float128 f) @optional;
 
   fn void? serialize_null();
 

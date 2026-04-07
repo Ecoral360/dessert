@@ -83,12 +83,12 @@ fn void? uint128.serialize(&self, Serializer ser) @dynamic {
 
 /// Floating numbers
 
-fn void? float16.serialize(&self, Serializer ser) @dynamic {
-  if (&ser.serialize_float16) {
-    return ser.serialize_float16(*self);
-  }
-  return ser.serialize_double((double) *self);
-}
+// fn void? float16.serialize(&self, Serializer ser) @dynamic @if($defined(float16)) {
+//   if (&ser.serialize_float16) {
+//     return ser.serialize_float16(*self);
+//   }
+//   return ser.serialize_double((double) *self);
+// }
 
 fn void? float.serialize(&self, Serializer ser) @dynamic {
   if (&ser.serialize_float) {
@@ -101,9 +101,9 @@ fn void? double.serialize(&self, Serializer ser) @dynamic {
   return ser.serialize_double(*self);
 }
 
-fn void? float128.serialize(&self, Serializer ser) @dynamic {
-  if (&ser.serialize_float128) {
-    return ser.serialize_float128(*self);
-  }
-  return UNSUPPORTED_DATA_TYPE~;
-}
+// fn void? float128.serialize(&self, Serializer ser) @dynamic {
+//   if (&ser.serialize_float128) {
+//     return ser.serialize_float128(*self);
+//   }
+//   return UNSUPPORTED_DATA_TYPE~;
+// }
