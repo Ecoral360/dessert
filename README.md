@@ -98,7 +98,7 @@ enum Color @DessertEnum({ .as = NAME }) {
 ### Using [`c3po`](https://github.com/Ecoral360/c3po);
 In your project, run 
 ```sh
-c3po add ecoral360/dessert.c3l
+c3po add ecoral360/dessert
 ```
 
 ### Manually
