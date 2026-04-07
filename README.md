@@ -95,6 +95,13 @@ enum Color @DessertEnum({ .as = NAME }) {
 
 ## Installation
 
+### Using [`c3po`](https://github.com/Ecoral360/c3po);
+In your project, run 
+```sh
+c3po add ecoral360/dessert.c3l
+```
+
+### Manually
 Get started with dessert: 
 1. Make sure you have the [C3 compiler installed](https://github.com/c3lang/c3c)
 2. Run `c3c init <YOUR_PROJECT>`
