@@ -113,6 +113,67 @@ fn String? JsonValue.to_string(self) {
   }
 }
 
+fn String? to_pretty_string(JsonValue self, int indent = 2, int depth = 0) @private {
+  DString pad;
+  pad.init(mem);
+  pad.append_repeat(' ', (usz) (indent * depth));
+
+  DString inner_pad;
+  inner_pad.init(mem);
+  inner_pad.append_repeat(' ', (usz) (indent * (depth + 1)));
+
+  switch (self.kind) {
+    case NULL:
+      return "null";
+    case INT:
+      return string::format(mem, "%d", self.value.i);
+    case FLOAT:
+      return string::format(mem, "%g", self.value.f);
+    case BOOL:
+      return string::format(mem, "%s", self.value.b ? "true" : "false");
+    case STRING:
+      return string::format(mem, "\"%s\"", self.value.s);
+    case ARRAY:
+      DString s;
+      s.init(mem);
+      ulong l_len = self.value.l.len();
+      if (l_len == 0) return "[]";
+      s.append("[\n");
+      foreach (i, item : self.value.l) {
+        s.append(inner_pad);
+        s.append(to_pretty_string(item, indent, depth + 1)!);
+        if (i < l_len - 1) s.append(",");
+        s.append("\n");
+      }
+      s.append(pad);
+      s.append("]");
+      return s.str_view();
+    case DICT:
+      DString s;
+      s.init(mem);
+      ulong d_len = self.value.d.len();
+      if (d_len == 0) return "{}";
+      s.append("{\n");
+      foreach (i, entry : self.value.d.iter()) {
+        s.append(inner_pad);
+        s.append(string::format(mem, "\"%s\": ", entry.key));
+        s.append(to_pretty_string(entry.value, indent: indent, depth: depth + 1)!);
+        if (i < d_len - 1) s.append(",");
+        s.append("\n");
+      }
+      s.append(pad);
+      s.append("}");
+      return s.str_view();
+    default:
+      return NOT_FOUND~;
+  }
+
+}
+
+fn String? JsonValue.to_pretty_string(self, int indent = 2) {
+  return to_pretty_string(self, indent);
+}
+
 
 module dessert::json;
 import dessert::ser;
