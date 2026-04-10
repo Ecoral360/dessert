@@ -87,21 +87,35 @@ macro impl_serialize(s, Serializer serializer) {
               return VALIDATOR_ERROR~;
             }
           $endif
-          $if $dessert.skip_if_empty:
-            if (!@is_empty(s.$eval($member.nameof))) {
+
+          $switch:
+            $case $dessert.skip_if_empty:
+              if (!@is_empty(s.$eval($member.nameof))) {
+                serializer.serialize_field_start(
+                  $dessert.rename.len > 0 ??? $dessert.rename : $member.nameof
+                )!;
+                serialize_value(serializer, s.$eval($member.nameof), $dessert)!;
+                serializer.serialize_field_end()!;
+              }
+
+            $case $defined(s.$eval("skip_serializing_" +++ $member.nameof)()) 
+              &&& $typeof(s.$eval("skip_serializing_" +++ $member.nameof)).returns == bool:
+
+              if (!s.$eval("skip_serializing_" +++ $member.nameof)()) {
+                serializer.serialize_field_start(
+                  $dessert.rename.len > 0 ??? $dessert.rename : $member.nameof
+                )!;
+                serialize_value(serializer, s.$eval($member.nameof), $dessert)!;
+                serializer.serialize_field_end()!;
+              }
+
+            $default:
               serializer.serialize_field_start(
                 $dessert.rename.len > 0 ??? $dessert.rename : $member.nameof
               )!;
               serialize_value(serializer, s.$eval($member.nameof), $dessert)!;
               serializer.serialize_field_end()!;
-            }
-          $else
-            serializer.serialize_field_start(
-              $dessert.rename.len > 0 ??? $dessert.rename : $member.nameof
-            )!;
-            serialize_value(serializer, s.$eval($member.nameof), $dessert)!;
-            serializer.serialize_field_end()!;
-          $endif
+          $endswitch
         $endif
       $endforeach
       serializer.struct_end()!;

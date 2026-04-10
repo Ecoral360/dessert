@@ -30,11 +30,15 @@ fn void? State.deserialize(&self, Deserializer deserializer) =>
 struct Person {
   int age;
   String name;
-  Animal[] pets @Dessert({.skip_if_empty = true});
+  Animal[] pets @Dessert({ .skip_if_empty = true });
   Person* friend @Dessert({ .rename = "my_friend" });
   bool is_cool @Dessert({ .skip = true });
   long a;
   State state;
+}
+
+fn bool Person.skip_serializing_age(&self) {
+  return self.age == 24;
 }
 
 fn void? Person.serialize(&self, Serializer serializer) => 
@@ -65,6 +69,8 @@ fn void t() @test {
 
   assert(p.friend != null);
   assert(p.friend.name == "Amenda");
+  assert(p.friend.age == 0);
+
 
   // io::printfn("Person named %s with a %s named %s", p.name, p.pets[0].specie, p.pets[0].name);
 }
